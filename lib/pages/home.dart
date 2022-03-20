@@ -10,9 +10,13 @@ import 'package:beautysalon/widgets/my_column.dart';
 import 'package:beautysalon/widgets/our_works.dart';
 import 'package:beautysalon/widgets/sidebar.dart';
 import 'package:beautysalon/widgets/specialist_column.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../uidata.dart';
+import 'login.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -20,6 +24,38 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  String? userName;
+  String? email;
+  String? profileImg;
+
+  currentUserProfile() async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser != null)
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(firebaseUser.uid)
+          .get()
+          .then((ds) {
+        userName = ds.data()!['username'];
+        email = ds.data()!['email'];
+        profileImg = ds.data()!['image'];
+      }).catchError((e) {
+        print(e);
+      });
+  }
+
+  final FirebaseAuth auth = FirebaseAuth.instance;
+  final googleSignIn = GoogleSignIn();
+  logOut() async {
+    await auth.signOut();
+    googleSignIn.disconnect();
+    setState(() {});
+    print("user diconnected");
+
+    Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => Login()), (route) => false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final screen_size_width = MediaQuery.of(context).size.width;
@@ -45,16 +81,26 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         actions: <Widget>[
-          Container(
-            decoration: BoxDecoration(),
-            margin: EdgeInsets.only(right: 15, top: 15),
-            child: CircleAvatar(
-              radius: 22,
-              backgroundImage: AssetImage(
-                "images/profile.jpg",
-              ),
-            ),
-          ),
+          FutureBuilder(
+              future: currentUserProfile(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done)
+                  return Text("Loading please wait ");
+
+                return Padding(
+                  padding: const EdgeInsets.only(top: 10, bottom: 8, right: 10),
+                  child: Container(
+                    child: GestureDetector(
+                      onTap: () {},
+                      child: CircleAvatar(
+                        radius: 20,
+                        backgroundColor: Colors.transparent,
+                        backgroundImage: NetworkImage(profileImg!),
+                      ),
+                    ),
+                  ),
+                );
+              }),
         ],
       ),
       body: Align(
@@ -403,20 +449,27 @@ class _HomePageState extends State<HomePage> {
           color: UIData.mainColor,
           height: 150,
           width: 310,
-          child: DrawerHeader(
-            decoration: BoxDecoration(color: UIData.mainColor),
-            child: ListTile(
-              tileColor: UIData.mainColor,
-              leading: CircleAvatar(
-                backgroundColor: Colors.white,
-                backgroundImage: AssetImage('images/avator.png'),
-              ),
-              title: Text(
-                "Username@gmail.com",
-                style: TextStyle(color: Colors.black),
-              ),
-            ),
-          ),
+          child: FutureBuilder(
+              future: currentUserProfile(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done)
+                  return Text("Loading please wait ");
+
+                return DrawerHeader(
+                  decoration: BoxDecoration(color: UIData.mainColor),
+                  child: ListTile(
+                    tileColor: UIData.mainColor,
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.white,
+                      backgroundImage: NetworkImage(profileImg!),
+                    ),
+                    title: Text(
+                      email!,
+                      style: TextStyle(color: Colors.black),
+                    ),
+                  ),
+                );
+              }),
         ),
         Flexible(
           child: Container(
