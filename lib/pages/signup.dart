@@ -1,0 +1,281 @@
+import 'package:beautysalon/pages/login.dart';
+import 'package:beautysalon/helper/stoarage_helper.dart';
+import 'package:beautysalon/uidata.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
+
+class Signup extends StatefulWidget {
+  const Signup({Key? key}) : super(key: key);
+
+  @override
+  _SignupState createState() => _SignupState();
+}
+
+TextEditingController emailcontroller = TextEditingController();
+TextEditingController passwordcontroller = TextEditingController();
+TextEditingController usernamecontroller = TextEditingController();
+
+FirebaseAuth auth = FirebaseAuth.instance;
+var results;
+
+Future signup1(context) async {
+  if (results != null &&
+      emailcontroller.text != "" &&
+      usernamecontroller.text != "" &&
+      passwordcontroller.text != "") {
+    var folder = emailcontroller.text;
+    Storage storageobj = Storage();
+    var filename = results.files.single.name;
+    var pathname = results.files.single.path;
+    storageobj.uploadFile(pathname, folder, filename);
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+              email: emailcontroller.text, password: passwordcontroller.text);
+      await FirebaseFirestore.instance.collection("user_detail").add({
+        'email': emailcontroller.text,
+        'username': usernamecontroller.text,
+        'password': passwordcontroller.text,
+        'profile': "profile/" + folder + "/" + results.files.single.name
+      });
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const Login()),
+      );
+      emailcontroller.clear();
+      usernamecontroller.clear();
+      passwordcontroller.clear();
+      results = null;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'weak-password') {
+        print('The password provided is too weak.');
+      } else if (e.code == 'email-already-in-use') {
+        print('The account already exists for that email.');
+      }
+    } catch (e) {
+      print(e);
+    }
+  }
+}
+
+class _SignupState extends State<Signup> {
+  bool _isObscure = true;
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        body: Container(
+      color: UIData.mainColor,
+      child: Center(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image(
+                image: AssetImage(
+                  "images/logo.png",
+                ),
+                height: 150,
+                width: MediaQuery.of(context).size.width,
+              ),
+              Text(
+                "Join the Baatcheet",
+                style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20),
+              ),
+              SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+              Stack(alignment: Alignment.bottomRight, children: [
+                if (results != null)
+                  CircleAvatar(
+                    radius: MediaQuery.of(context).size.width * 0.12,
+                    backgroundImage: FileImage(
+                      File(results.files.single.path),
+                    ),
+                  ),
+                InkWell(
+                  onTap: () async {
+                    results = await FilePicker.platform.pickFiles(
+                        type: FileType.custom,
+                        allowMultiple: false,
+                        allowedExtensions: ['pdf', 'jpg', 'png', 'jpeg']);
+                    setState(() {
+                      results = results;
+                    });
+                    if (results == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("content"),
+                        ),
+                      );
+                    }
+                    var pathname = results.files.single.path;
+                  },
+                  child: CircleAvatar(
+                    radius: 15,
+                    backgroundColor: Colors.white,
+                    child: Icon(
+                      Icons.add,
+                      color: UIData.mainColor,
+                    ),
+                  ),
+                ),
+              ]),
+              SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+              Container(
+                  width: MediaQuery.of(context).size.width * 0.8,
+                  child: Text(
+                    "Email",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16),
+                  )),
+              Container(
+                width: MediaQuery.of(context).size.width * 0.8,
+                child: TextField(
+                  style: TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    contentPadding: EdgeInsets.all(10.0),
+                    fillColor: UIData.mainColorlight,
+                    filled: true,
+                    border: OutlineInputBorder(
+                        borderSide: BorderSide.none,
+                        borderRadius: BorderRadius.circular(3)),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide.none,
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                  ),
+                  controller: emailcontroller,
+                ),
+              ),
+              SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+              Container(
+                  width: MediaQuery.of(context).size.width * 0.8,
+                  child: Text(
+                    "Username",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16),
+                  )),
+              Container(
+                width: MediaQuery.of(context).size.width * 0.8,
+                child: TextField(
+                  style: TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    contentPadding: EdgeInsets.all(10.0),
+                    fillColor: UIData.mainColorlight,
+                    filled: true,
+                    border: OutlineInputBorder(
+                        borderSide: BorderSide.none,
+                        borderRadius: BorderRadius.circular(3)),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide.none,
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                  ),
+                  controller: usernamecontroller,
+                ),
+              ),
+              SizedBox(height: MediaQuery.of(context).size.height * 0.03),
+              Container(
+                  width: MediaQuery.of(context).size.width * 0.8,
+                  child: Text(
+                    "Password",
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16),
+                  )),
+              Container(
+                width: MediaQuery.of(context).size.width * 0.8,
+                child: TextField(
+                  obscureText: _isObscure,
+                  style: TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    contentPadding: EdgeInsets.all(10.0),
+                    fillColor: UIData.mainColorlight,
+                    filled: true,
+                    suffixIcon: IconButton(
+                        icon: Icon(
+                            _isObscure
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                            color: Colors.white),
+                        onPressed: () {
+                          setState(() {
+                            _isObscure = !_isObscure;
+                          });
+                        }),
+                    border: OutlineInputBorder(
+                        borderSide: BorderSide.none,
+                        borderRadius: BorderRadius.circular(3)),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide.none,
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                  ),
+                  controller: passwordcontroller,
+                ),
+              ),
+              SizedBox(
+                height: MediaQuery.of(context).size.width * 0.08,
+              ),
+              Container(
+                width: MediaQuery.of(context).size.width * 0.8,
+                child: ElevatedButton(
+                  onPressed: () {
+                    signup1(context);
+                  },
+                  child: Text(
+                    "Signup",
+                    style: TextStyle(color: UIData.mainColor),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                      primary: Colors.white,
+                      padding: EdgeInsets.only(top: 10, bottom: 10),
+                      textStyle:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(10.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Already hava an account ?",
+                      style: TextStyle(color: Colors.white, fontSize: 13),
+                    ),
+                    InkWell(
+                        onTap: () {
+                          Navigator.pop(context);
+                          emailcontroller.clear();
+                          usernamecontroller.clear();
+                          passwordcontroller.clear();
+                          results = null;
+                        },
+                        child: Text(
+                          " login",
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold),
+                        )),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ));
+  }
+}
