@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:449838306630:android:c4e1691f9f1dff12238147",
+        "mobilesdk_app_id": "1:449838306630:android:49f6e2fa1423c811238147",
         "android_client_info": {
-          "package_name": "com.android.application"
+          "package_name": "com.example.beautysalon"
         }
       },
       "oauth_client": [
